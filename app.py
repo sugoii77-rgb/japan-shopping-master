@@ -360,38 +360,55 @@ hr{border:none !important;height:1px !important;
 }
 @keyframes fadeout{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
 </style>
-<script>
-// ── 브라우저 내장 TTS (Web Speech API) ──
-(function(){
-  if(!window.speechSynthesis) return;
-  // 보이스 프리로드
-  window.speechSynthesis.onvoiceschanged = function(){ window.speechSynthesis.getVoices(); };
-  window.speechSynthesis.getVoices();
+""", unsafe_allow_html=True)
 
-  window.speakJP = function(txt){
-    if(!window.speechSynthesis){ alert('음성을 지원하지 않는 브라우저예요.'); return; }
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(txt);
+# ── TTS 함수를 부모 윈도우에 주입 (components.html → iframe → window.parent) ──
+# Streamlit은 st.markdown의 <script>를 제거함 → components.html 우회 필수
+components.html("""
+<script>
+(function(){
+  var P = window.parent;
+  if(!P || !P.speechSynthesis){ return; }
+
+  // 보이스 미리 로드
+  P.speechSynthesis.getVoices();
+  P.speechSynthesis.onvoiceschanged = function(){ P.speechSynthesis.getVoices(); };
+
+  // 전역 speakJP 함수 → 부모 윈도우에 등록
+  P.speakJP = function(txt){
+    P.speechSynthesis.cancel();
+    var u = new P.SpeechSynthesisUtterance(txt);
     u.lang  = 'ja-JP';
     u.rate  = 0.82;
     u.pitch = 1.05;
-    // 일본어 보이스 우선 선택
-    var voices = window.speechSynthesis.getVoices();
-    var jaVoice = voices.find(function(v){ return v.lang && v.lang.startsWith('ja'); });
-    if(jaVoice) u.voice = jaVoice;
-    window.speechSynthesis.speak(u);
-    // 토스트
-    var old = document.getElementById('tts-toast');
+    var voices = P.speechSynthesis.getVoices();
+    var jv = voices.find(function(v){ return v.lang && v.lang.startsWith('ja'); });
+    if(jv) u.voice = jv;
+    P.speechSynthesis.speak(u);
+
+    // 하단 토스트 표시
+    var old = P.document.getElementById('_tts_toast');
     if(old) old.remove();
-    var el = document.createElement('div');
-    el.id='tts-toast'; el.className='tts-toast';
-    el.textContent = '🔊 ' + txt.substring(0,20) + (txt.length>20?'…':'');
-    document.body.appendChild(el);
-    setTimeout(function(){ if(el.parentNode) el.remove(); }, 2000);
+    var el = P.document.createElement('div');
+    el.id = '_tts_toast';
+    el.style.cssText = [
+      'position:fixed','bottom:76px','left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(30,30,30,0.9)','color:#fff',
+      'padding:7px 18px','border-radius:22px',
+      'font-size:0.78rem','font-weight:600',
+      'z-index:99999','pointer-events:none',
+      'box-shadow:0 4px 14px rgba(0,0,0,0.35)',
+      'transition:opacity 0.4s'
+    ].join(';');
+    el.textContent = '🔊  ' + txt.slice(0,22) + (txt.length > 22 ? '…' : '');
+    P.document.body.appendChild(el);
+    setTimeout(function(){ el.style.opacity='0'; }, 1600);
+    setTimeout(function(){ if(el.parentNode) el.remove(); }, 2100);
   };
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ============================================================
 # 4. 데이터 — 쇼핑 핫템
