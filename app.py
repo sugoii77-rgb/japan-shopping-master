@@ -340,7 +340,57 @@ hr{border:none !important;height:1px !important;
     background:linear-gradient(90deg,#9c27b0,#e040fb);
     height:100%;border-radius:10px;transition:width .3s;
 }
+
+/* ── TTS 클릭 스타일 ── */
+.speak-btn{cursor:pointer;transition:all 0.15s;display:inline-block;width:100%;}
+.speak-btn:hover{opacity:0.75;transform:scale(0.985);}
+.speak-btn:active{transform:scale(0.96);}
+.tts-icon{
+    font-size:0.72em;background:linear-gradient(135deg,#ff7043,#ff5722);
+    color:white;padding:1px 6px;border-radius:8px;
+    margin-left:6px;vertical-align:middle;opacity:0.9;
+    font-style:normal;font-weight:700;letter-spacing:0.3px;
+}
+.tts-toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:rgba(33,33,33,0.88);color:white;
+    padding:6px 16px;border-radius:20px;font-size:0.75rem;
+    z-index:9999;pointer-events:none;
+    animation:fadeout 1.8s forwards;
+}
+@keyframes fadeout{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
 </style>
+<script>
+// ── 브라우저 내장 TTS (Web Speech API) ──
+(function(){
+  if(!window.speechSynthesis) return;
+  // 보이스 프리로드
+  window.speechSynthesis.onvoiceschanged = function(){ window.speechSynthesis.getVoices(); };
+  window.speechSynthesis.getVoices();
+
+  window.speakJP = function(txt){
+    if(!window.speechSynthesis){ alert('음성을 지원하지 않는 브라우저예요.'); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(txt);
+    u.lang  = 'ja-JP';
+    u.rate  = 0.82;
+    u.pitch = 1.05;
+    // 일본어 보이스 우선 선택
+    var voices = window.speechSynthesis.getVoices();
+    var jaVoice = voices.find(function(v){ return v.lang && v.lang.startsWith('ja'); });
+    if(jaVoice) u.voice = jaVoice;
+    window.speechSynthesis.speak(u);
+    // 토스트
+    var old = document.getElementById('tts-toast');
+    if(old) old.remove();
+    var el = document.createElement('div');
+    el.id='tts-toast'; el.className='tts-toast';
+    el.textContent = '🔊 ' + txt.substring(0,20) + (txt.length>20?'…':'');
+    document.body.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.remove(); }, 2000);
+  };
+})();
+</script>
 """, unsafe_allow_html=True)
 
 # ============================================================
@@ -857,10 +907,10 @@ with tab_vocab:
         st.markdown(f"""
 <div class="vocab-card">
     <span class="vocab-badge">{cat_sel}</span>
-    <div class="vocab-jp">{w['jp']}</div>
+    <div class="vocab-jp speak-btn" onclick="speakJP('{w['jp']}')">{w['jp']}<span class="tts-icon">🔊 탭</span></div>
     <div class="vocab-read">{w['read']}</div>
     <div class="vocab-ko">🇰🇷 {w['ko']}</div>
-    <div class="vocab-ex">✏️ {w['ex']}</div>
+    <div class="vocab-ex speak-btn" onclick="speakJP('{w['ex'].split('(')[0].strip()}')" style="cursor:pointer;">✏️ {w['ex']}<span class="tts-icon">🔊</span></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -889,12 +939,12 @@ with tab_grammar:
         st.markdown(f"""
 <div class="grammar-card">
     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.2rem;">
-        <div class="grammar-pattern">{g['pattern']}</div>
+        <div class="grammar-pattern speak-btn" onclick="speakJP('{g['ex_jp']}')" style="font-size:1.05rem;">{g['pattern']}<span class="tts-icon">🔊 탭</span></div>
         <span style="font-size:0.6rem;font-weight:700;color:#fff;
             background:#ff7043;padding:1px 7px;border-radius:10px;">{g['level']}</span>
     </div>
     <div class="grammar-meaning">{g['meaning']}</div>
-    <div class="grammar-ex-jp">{g['ex_jp']}</div>
+    <div class="grammar-ex-jp speak-btn" onclick="speakJP('{g['ex_jp']}')">{g['ex_jp']}<span class="tts-icon">🔊</span></div>
     <div class="grammar-ex-read">{g['ex_read']}</div>
     <div class="grammar-ex-ko">🇰🇷 {g['ex_ko']}</div>
     <div class="grammar-tip">💡 {g['tip']}</div>
@@ -917,8 +967,8 @@ with tab_dial:
 <div class="d-row">
     <span class="{spk_class}">{line['spk']}</span>
     <div class="{bubble_class}">
-        <div class="d-jp">{line['jp']}</div>
-        <div class="d-read">🔊 {line['read']}</div>
+        <div class="d-jp speak-btn" onclick="speakJP('{line['jp']}')">{line['jp']}<span class="tts-icon">🔊</span></div>
+        <div class="d-read" style="cursor:pointer;" onclick="speakJP('{line['jp']}')">🔊 {line['read']}</div>
         <div class="d-ko">🇰🇷 {line['ko']}</div>
     </div>
 </div>"""
@@ -989,8 +1039,8 @@ with tab_quiz:
         st.markdown(f"""
 <div class="quiz-card">
     <span class="quiz-q-label">📂 {q['category']} | Q{idx+1}</span>
-    <div class="quiz-q-jp">{q['q_jp']}</div>
-    <div class="quiz-q-read">{q['q_read']}</div>
+    <div class="quiz-q-jp speak-btn" onclick="speakJP('{q['q_jp']}')">{q['q_jp']}<span class="tts-icon">🔊 탭</span></div>
+    <div class="quiz-q-read speak-btn" onclick="speakJP('{q['q_jp']}')" style="cursor:pointer;">🔊 {q['q_read']}</div>
     <div style="font-size:0.72rem;color:#9e9e9e;">아래에서 한국어 뜻을 고르세요</div>
 </div>
 """, unsafe_allow_html=True)
@@ -1044,9 +1094,9 @@ with tab_phrase:
         st.markdown(f"""
 <div class="phrase-card">
     <span class="phrase-sit">{phrase['situation']}</span>
-    <div class="phrase-jp">{phrase['japanese']}</div>
+    <div class="phrase-jp speak-btn" onclick="speakJP('{phrase['japanese']}')">{phrase['japanese']}<span class="tts-icon">🔊 탭</span></div>
     <div class="phrase-ko">🇰🇷 {phrase['korean']}</div>
-    <div class="phrase-read">🔊 {phrase['reading']}</div>
+    <div class="phrase-read speak-btn" onclick="speakJP('{phrase['japanese']}')" style="cursor:pointer;">🔊 {phrase['reading']}</div>
     <div class="phrase-tip">💡 {phrase['tip']}</div>
 </div>
 """, unsafe_allow_html=True)
