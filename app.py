@@ -5,6 +5,7 @@
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 
 # ============================================================
@@ -718,9 +719,85 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── BGM ─────────────────────────────────────────────────────
-st.markdown('<div class="bgm-box"><div class="bgm-label">🎵 여행 BGM 플레이어</div>', unsafe_allow_html=True)
+st.markdown('<div class="bgm-box"><div class="bgm-label">🎵 여행 BGM — 선택 후 ▶ 클릭!</div>', unsafe_allow_html=True)
 bgm_sel = st.selectbox("BGM", list(BGM_OPTIONS.keys()), label_visibility="collapsed")
-st.audio(BGM_OPTIONS[bgm_sel], format="audio/mp3", autoplay=False)
+_bgm_url = BGM_OPTIONS[bgm_sel]
+components.html(f"""
+<style>
+  .bgm-player {{
+    display:flex;align-items:center;gap:10px;
+    background:linear-gradient(135deg,#f3e5f5,#e8eaf6);
+    border-radius:14px;padding:8px 14px;margin-top:6px;
+    border:1.5px solid #d1c4e9;
+  }}
+  .bgm-btn {{
+    background:linear-gradient(135deg,#9c27b0,#673ab7);
+    color:white;border:none;border-radius:50%;
+    width:40px;height:40px;font-size:1.1rem;
+    cursor:pointer;flex-shrink:0;
+    box-shadow:0 3px 10px rgba(156,39,176,.4);
+    display:flex;align-items:center;justify-content:center;
+  }}
+  .bgm-btn:hover{{background:linear-gradient(135deg,#7b1fa2,#512da8);}}
+  .bgm-title {{
+    font-size:0.8rem;font-weight:700;color:#4a148c;
+    font-family:'Noto Sans KR',sans-serif;flex:1;
+  }}
+  .bgm-status {{font-size:0.68rem;color:#7986cb;margin-top:2px;}}
+  input[type=range]{{width:100%;accent-color:#9c27b0;}}
+</style>
+<div class="bgm-player">
+  <button class="bgm-btn" onclick="togglePlay()" id="btn">▶</button>
+  <div style="flex:1;min-width:0;">
+    <div class="bgm-title">{bgm_sel}</div>
+    <div class="bgm-status" id="status">재생 버튼을 눌러주세요</div>
+    <input type="range" id="seek" value="0" step="1" style="margin-top:4px;">
+  </div>
+  <span style="font-size:0.72rem;color:#7986cb;" id="time">0:00</span>
+</div>
+<audio id="audio" loop preload="auto">
+  <source src="{_bgm_url}" type="audio/mpeg">
+</audio>
+<script>
+  var audio = document.getElementById('audio');
+  var btn   = document.getElementById('btn');
+  var seek  = document.getElementById('seek');
+  var status= document.getElementById('status');
+  var timeEl= document.getElementById('time');
+
+  function fmt(s){{
+    var m=Math.floor(s/60),sec=Math.floor(s%60);
+    return m+':'+(sec<10?'0':'')+sec;
+  }}
+
+  function togglePlay(){{
+    if(audio.paused){{
+      audio.play().then(function(){{
+        btn.textContent='⏸';
+        status.textContent='재생 중 🎵';
+      }}).catch(function(e){{
+        status.textContent='재생 실패: '+e.message;
+      }});
+    }}else{{
+      audio.pause();
+      btn.textContent='▶';
+      status.textContent='일시정지';
+    }}
+  }}
+
+  audio.addEventListener('timeupdate',function(){{
+    if(audio.duration){{
+      seek.max=Math.floor(audio.duration);
+      seek.value=Math.floor(audio.currentTime);
+      timeEl.textContent=fmt(audio.currentTime)+' / '+fmt(audio.duration);
+    }}
+  }});
+
+  seek.addEventListener('input',function(){{
+    audio.currentTime=seek.value;
+  }});
+</script>
+""", height=100)
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("---")
