@@ -557,12 +557,7 @@ if not st.session_state.quiz_pool:
 # ============================================================
 # BGM
 # ============================================================
-BGM_OPTIONS = {
-    "🌸 잔잔한 Lo-fi":      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    "🎋 감성 앰비언트":     "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-    "🍜 경쾌한 팝 리듬":   "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
-    "🎐 여유로운 어쿠스틱": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3",
-}
+_BGM_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"
 
 # ============================================================
 # UI
@@ -570,10 +565,7 @@ BGM_OPTIONS = {
 st.markdown('<div class="app-title">🇯🇵 일본어 1일 마스터</div>', unsafe_allow_html=True)
 st.markdown('<div class="app-sub">Japan Shopping &amp; 일본어 완전정복 — 중급자 맞춤판</div>', unsafe_allow_html=True)
 
-# BGM 플레이어
-st.markdown('<div class="bgm-box"><div class="bgm-label">🎵 여행 BGM — 선택 후 ▶ 클릭!</div>', unsafe_allow_html=True)
-bgm_sel = st.selectbox("BGM", list(BGM_OPTIONS.keys()), label_visibility="collapsed")
-_bu = BGM_OPTIONS[bgm_sel]
+# BGM 플레이어 — 자동재생, 셀렉박스 없음
 components.html(f"""
 <style>
   body{{margin:0;padding:0;background:transparent;}}
@@ -589,24 +581,30 @@ components.html(f"""
   input[type=range]{{width:100%;accent-color:#9c27b0;margin-top:4px;}}
 </style>
 <div class="bp">
-  <button class="bb" id="btn" onclick="toggle()">▶</button>
+  <button class="bb" id="btn" onclick="toggle()">⏸</button>
   <div style="flex:1;min-width:0;">
-    <div class="bt">{bgm_sel}</div>
-    <div class="bs" id="st">▶ 버튼을 눌러 재생하세요</div>
+    <div class="bt">🍜 경쾌한 팝 리듬</div>
+    <div class="bs" id="st">재생 중 🎵</div>
     <input type="range" id="sk" value="0" step="1">
   </div>
   <span style="font-size:.7rem;color:#7986cb;" id="tm">0:00</span>
 </div>
-<audio id="au" loop preload="auto"><source src="{_bu}" type="audio/mpeg"></audio>
+<audio id="au" loop autoplay preload="auto"><source src="{_BGM_URL}" type="audio/mpeg"></audio>
 <script>
 var a=document.getElementById('au'),btn=document.getElementById('btn'),
     sk=document.getElementById('sk'),st=document.getElementById('st'),
     tm=document.getElementById('tm');
 function fmt(s){{var m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc;}}
 function toggle(){{
-  if(a.paused){{a.play().then(function(){{btn.textContent='⏸';st.textContent='재생 중 🎵';}}).catch(function(e){{st.textContent='오류:'+e.message;}});}}
+  if(a.paused){{a.play().then(function(){{btn.textContent='⏸';st.textContent='재생 중 🎵';}}).catch(function(e){{st.textContent='재생 버튼을 눌러주세요';}});}}
   else{{a.pause();btn.textContent='▶';st.textContent='일시정지';}}
 }}
+// 자동재생 시도 — 브라우저 정책상 차단되면 클릭 유도
+a.play().then(function(){{
+  btn.textContent='⏸'; st.textContent='재생 중 🎵';
+}}).catch(function(){{
+  btn.textContent='▶'; st.textContent='▶ 눌러서 BGM 시작!';
+}});
 a.addEventListener('timeupdate',function(){{
   if(a.duration){{sk.max=Math.floor(a.duration);sk.value=Math.floor(a.currentTime);
     tm.textContent=fmt(a.currentTime)+'/'+fmt(a.duration);}}
@@ -615,7 +613,6 @@ sk.addEventListener('input',function(){{a.currentTime=sk.value;}});
 window.parent.postMessage({{type:'streamlit:setFrameHeight',height:72}},'*');
 </script>
 """, height=72)
-st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
